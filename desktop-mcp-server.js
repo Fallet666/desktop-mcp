@@ -41,8 +41,12 @@ async function captureScreen() {
   const filePath = path.join(os.tmpdir(), `opencode-desktop-${Date.now()}.png`);
 
   try {
-    // `gnome-screenshot` works in this Wayland session where ImageMagick `import` does not.
-    await execFileAsync("gnome-screenshot", ["-f", filePath], { env: process.env });
+    if (os.platform() === "darwin") {
+      await execFileAsync("screencapture", ["-x", filePath], { env: process.env });
+    } else {
+      // `gnome-screenshot` works in Wayland where ImageMagick `import` does not.
+      await execFileAsync("gnome-screenshot", ["-f", filePath], { env: process.env });
+    }
     return await fs.readFile(filePath, { encoding: "base64" });
   } finally {
     await fs.rm(filePath, { force: true });
