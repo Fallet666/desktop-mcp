@@ -11,6 +11,36 @@ const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio
 const { z } = require("zod");
 
 const execFileAsync = promisify(execFile);
+const execAsync = promisify(require("child_process").exec);
+
+async function askPermission(type, appName, pane) {
+  console.error(`\n  [desktop-mcp] Need "${type}" permission for ${appName}.`);
+  console.error(`  Open: System Settings → Privacy & Security → ${type}`);
+  console.error("  Then add your terminal/IDE to the list.\n");
+
+  try {
+    await execAsync(`open "x-apple.systempreferences:com.apple.preference.security?${pane}"`);
+    console.error("  System Settings opened. Grant the permission and restart the server.\n");
+  } catch {
+    // fallback: just print instructions
+  }
+}
+
+async function checkMacOSPermissions() {
+  const { stdout: trusted } = await execAsync(
+    `osascript -e 'use framework "ApplicationServices"' -e 'AXIsProcessTrusted()'`,
+  );
+
+  if (trusted.trim() !== "true") {
+    await askPermission("Accessibility", "robotjs (keyboard/mouse)", "Privacy_Accessibility");
+  }
+
+  try {
+    await execFileAsync("screencapture", ["-x", "/dev/null"], { env: process.env });
+  } catch {
+    await askPermission("Screen Recording", "screencapture", "Privacy_ScreenCapture");
+  }
+}
 
 const server = new McpServer(
   {
@@ -157,6 +187,10 @@ server.tool(
 );
 
 async function main() {
+  if (os.platform() === "darwin") {
+    await checkMacOSPermissions();
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
