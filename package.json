@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@opencode-ai/plugin": "1.4.7",
+    "robotjs": "^0.7.0",
+    "zod": "^4.3.6"
+  }
+}
